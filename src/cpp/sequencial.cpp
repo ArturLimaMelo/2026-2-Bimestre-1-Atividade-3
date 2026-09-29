@@ -1,7 +1,7 @@
 #include <iostream>
 #include <random>
 #include <vector>
-
+#include "sequencial.h"
 using namespace std;
 
 
@@ -27,7 +27,7 @@ void consumir_dados(vector<int> dados) {
     }
     cout << "Recebeu -> " << resultado << endl;
 }
-int main() {
+int executar() {
     cout << "iniciou" << endl;
     vector<int> dados;
     dados = produzir_dados();
