@@ -1,0 +1,47 @@
+services:
+  threads:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpp
+    image: exemplo_cpp
+    command: ["/app/threads_demo"]
+
+  ipc-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpp
+    image: exemplo_cpp
+    command: ["/app/ipc_server"]
+    volumes:
+      - /tmp:/tmp
+
+  ipc-client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpp
+    image: exemplo_cpp
+    command: >
+      sh -c "until [ -S /tmp/demo.sock ]; do sleep 0.2; done; /app/ipc_client"
+    volumes:
+      - /tmp:/tmp
+    depends_on:
+      - ipc-server
+
+  tcp-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpp
+    image: exemplo_cpp
+    command: ["/app/tcp_server"]
+    ports:
+      - "9090:9090"
+
+  tcp-client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpp
+    image: exemplo_cpp
+    command: >
+      bash -lc "until bash -lc 'echo > /dev/tcp/tcp-server/9090' >/dev/null 2>&1; do sleep 0.2; done; /app/tcp_client"
+    depends_on:
+      - tcp-server
