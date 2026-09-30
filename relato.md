@@ -374,3 +374,6 @@ Conseguimos implementar os três cenários de comunicação entre tarefas em C++
 Também foi possível observar que a configuração de ambiente com Docker é fundamental para garantir reprodutibilidade, padronização e facilidade de execução. A utilização de imagens baseadas em Ubuntu, compiladores e mapeamento de portas e volumes evitou divergências entre diferentes computadores e reduziu erros de execução.
 
 Como recomendação para próximos alunos, vale enfatizar o uso de boas práticas de sincronização, a validação da ordem de inicialização dos serviços e o cuidado com o compartilhamento de recursos entre containers. Esses pontos são fundamentais para a construção de sistemas concorrentes e distribuídos de forma confiável.
+
+## Vídeo de execução dos códigos
+https://youtu.be/3H4wToCar1o
