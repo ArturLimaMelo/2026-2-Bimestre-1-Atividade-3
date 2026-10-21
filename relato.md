@@ -174,84 +174,112 @@ Esse exemplo mostra como threads compartilham memória no mesmo processo. Como o
 
 ### Comunicação entre tarefas em processos diferentes no mesmo computador
 
-Neste caso, foi implementado um modelo de comunicação por socket Unix, usando um processo servidor e um processo cliente na mesma máquina. O servidor fica aguardando conexões em um socket localizado em `/tmp/demo.sock`; o cliente envia uma requisição e recebe uma mensagem do servidor.
+Neste caso, foi implementado um modelo de comunicação por Pipe nomeado (FIFO), usando um caminho como canal de comunicação. O consumidor aguarda dados que vêm deste caminho enquanto o produtor envia dados por esse caminho.
 
 ```cpp
-// ipc_server.cpp
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
+// produtor.cpp
 #include <iostream>
-#include <cstring>
+#include <random>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+using namespace std;
 
 int main() {
-    const char *socket_path = "/tmp/demo.sock";
-    unlink(socket_path);
+    const char* caminho = "/tmp/dados_fifo";
 
-    int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (server_fd < 0) { perror("socket"); return 1; }
+    mkfifo(caminho, 0666);
 
-    sockaddr_un addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path)-1);
+    int fd = open(caminho, O_WRONLY);
 
-    if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) == -1) { perror("bind"); return 1; }
-    if (listen(server_fd, 5) == -1) { perror("listen"); return 1; }
+    random_device rd;
+    mt19937 gerador(rd());
+    uniform_int_distribution<int> distribuicao(0, 110);
 
-    std::cout << "IPC server listening on " << socket_path << std::endl;
+    for (int i = 0; i < 100; i++) {
+        int valor = distribuicao(gerador);
 
-    while (true) {
-        int client = accept(server_fd, nullptr, nullptr);
-        if (client == -1) { perror("accept"); break; }
-        const char *msg = "Hello from ipc_server\n";
-        write(client, msg, strlen(msg));
-        close(client);
+        if (write(fd, &valor, sizeof(valor)) != sizeof(valor)) {
+            perror("write");
+            close(fd);
+            return 1;
+        }
     }
 
-    close(server_fd);
-    unlink(socket_path);
+    close(fd);
+
+    cout << "Produtor: 100 numeros enviados." << endl;
+
     return 0;
 }
 ```
 
 ```cpp
-// ipc_client.cpp
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
+// consumidor.cpp
 #include <iostream>
-#include <cstring>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+using namespace std;
 
 int main() {
-    const char *socket_path = "/tmp/demo.sock";
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd < 0) { perror("socket"); return 1; }
+    const char* caminho = "/tmp/dados_fifo";
 
-    sockaddr_un addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path)-1);
+    mkfifo(caminho, 0666);
 
-    if (connect(fd, (sockaddr*)&addr, sizeof(addr)) == -1) { perror("connect"); return 1; }
+    int fd = open(caminho, O_RDONLY);
 
-    char buf[256];
-    ssize_t n = read(fd, buf, sizeof(buf)-1);
-    if (n > 0) {
-        buf[n] = '\0';
-        std::cout << "Client received: " << buf;
+    int valor;
+    int resultado = 0;
+    int quantidade = 0;
+
+    while (quantidade < 100) {
+        ssize_t n = read(fd, &valor, sizeof(valor));
+
+        if (n == 0) {
+            break;
+        }
+
+        if (n != sizeof(valor)) {
+            cerr << "Erro ao receber um numero." << endl;
+            close(fd);
+            return 1;
+        }
+
+        resultado += valor;
+        quantidade++;
     }
+
     close(fd);
+
+    cout << "Consumidor: " << quantidade
+         << " numeros recebidos." << endl;
+
+    cout << "Soma: " << resultado << endl;
+
     return 0;
 }
 ```
 
 ### Como foi executado
 
-Os serviços foram executados no Docker Compose com os containers `ipc-server` e `ipc-client`. O servidor foi configurado para criar o socket `/tmp/demo.sock`, enquanto o cliente esperou a criação desse arquivo antes de tentar a conexão.
+Foi criado um Pipe nomeado (FIFO), criando um caminho que age como um canal de rede, lendo todos os dados que forem mandados pelo pipe.
 
-A execução foi validada com o comando:
-
+A execução foi simplismente executar os arquivos produtor e consumidor em terminais diferentes
+```
+./produtor
+./consumidor
+```
+Saída obtida:
+```
+Consumidor: 100 numeros recebidos.
+Soma: 6126
+```
+```
+Produtor: 100 numeros enviados.
+```
 ```bash
 docker compose -f docker/docker-compose.yml up --build ipc-server ipc-client
 ```

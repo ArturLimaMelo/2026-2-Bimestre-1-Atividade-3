@@ -6,7 +6,7 @@
 #include <cstring>
 
 int main() {
-    const char *server_ip = "127.0.0.1";
+    const char *server_ip = "172.18.0.2";
     int port = 9090;
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
