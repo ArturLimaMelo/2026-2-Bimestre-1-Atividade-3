@@ -7,7 +7,7 @@
 #include <netdb.h>
 
 int main() {
-    const char *server_ip = "tcp-server";
+    const char *server_ip = "host.docker.internal";
     int port = 9090;
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);

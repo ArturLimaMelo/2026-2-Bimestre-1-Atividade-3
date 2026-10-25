@@ -13,7 +13,15 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.cpp
     image: exemplo_cpp
-    command: >
-      bash -lc "until bash -lc 'echo > /dev/tcp/tcp-server/9090' >/dev/null 2>&1; do sleep 0.2; done; /app/tcp_client"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - bash
+      - -lc
+      - |
+        until bash -lc 'echo > /dev/tcp/host.docker.internal/9090' >/dev/null 2>&1; do
+          sleep 0.2
+        done
+        exec /app/tcp_client
     depends_on:
       - tcp-server
