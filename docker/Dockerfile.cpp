@@ -4,6 +4,6 @@ WORKDIR /app
 COPY src/cpp ./src
 RUN g++ -pthread src/exemplo_main.cpp -o threads_demo \
  && g++ -pthread src/tcp_server.cpp -o tcp_server \
- && g++ -pthread src/tcp_client.cpp -o tcp_client || true
+ && g++ -pthread src/tcp_client.cpp -o tcp_client 
 
 CMD ["/app/threads_demo"]
