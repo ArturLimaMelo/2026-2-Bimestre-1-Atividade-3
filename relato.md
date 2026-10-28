@@ -31,10 +31,8 @@ RUN apt-get update && apt-get install -y build-essential cmake && rm -rf /var/li
 WORKDIR /app
 COPY src/cpp ./src
 RUN g++ -pthread src/exemplo_main.cpp -o threads_demo \
- && g++ -pthread src/ipc_server.cpp -o ipc_server \
- && g++ -pthread src/ipc_client.cpp -o ipc_client \
  && g++ -pthread src/tcp_server.cpp -o tcp_server \
- && g++ -pthread src/tcp_client.cpp -o tcp_client || true
+ && g++ -pthread src/tcp_client.cpp -o tcp_client 
 
 CMD ["/app/threads_demo"]
 ```
@@ -43,27 +41,6 @@ E a configuração dos serviços no Docker Compose foi:
 
 ```yaml
 services:
-  ipc-server:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.cpp
-    image: exemplo_cpp
-    command: ["/app/ipc_server"]
-    volumes:
-      - /tmp:/tmp
-
-  ipc-client:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.cpp
-    image: exemplo_cpp
-    command: >
-      sh -c "until [ -S /tmp/demo.sock ]; do sleep 0.2; done; /app/ipc_client"
-    volumes:
-      - /tmp:/tmp
-    depends_on:
-      - ipc-server
-
   tcp-server:
     build:
       context: ..
@@ -78,8 +55,16 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.cpp
     image: exemplo_cpp
-    command: >
-      bash -lc "until bash -lc 'echo > /dev/tcp/tcp-server/9090' >/dev/null 2>&1; do sleep 0.2; done; /app/tcp_client"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - bash
+      - -lc
+      - |
+        until bash -lc 'echo > /dev/tcp/host.docker.internal/9090' >/dev/null 2>&1; do
+          sleep 0.2
+        done
+        exec /app/tcp_client
     depends_on:
       - tcp-server
 ```
